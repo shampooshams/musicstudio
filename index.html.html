@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ambient Paint Music</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+
+        #canvas {
+            display: block;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            cursor: crosshair;
+            background: white;
+            width: 100%;
+            max-width: 800px;
+            height: 500px;
+            margin: 0 auto;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 12px;
+        }
+
+        .color-btn {
+            width: 40px;
+            height: 40px;
+            border: 3px solid transparent;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .color-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .color-btn.active {
+            border-color: #333;
+            transform: scale(1.15);
+        }
+
+        .instrument-selector {
+            background: #f5f5f5;
+            padding: 10px 15px;
+            border-radius: 12px;
+        }
+
+        .instrument-selector select {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .instrument-selector select:focus {
+            border-color: #667eea;
+        }
+
+        .brush-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f5f5f5;
+            padding: 10px 15px;
+            border-radius: 12px;
+        }
+
+        .brush-control label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        #brushSize {
+            width: 100px;
+        }
+
+        #brushValue {
+            color: #667eea;
+            font-weight: bold;
+            min-width: 30px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.secondary {
+            background: #45B7D1;
+        }
+
+        button.secondary:hover {
+            background: #3a9fb5;
+        }
+
+        button.danger {
+            background: #FF6B6B;
+        }
+
+        button.danger:hover {
+            background: #ff5252;
+        }
+
+        button.playing {
+            background: #4ECDC4;
+        }
+
+        .info {
+            text-align: center;
+            margin-top: 20px;
+            color: #888;
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            #canvas {
+                height: 400px;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Paint Music Studio</h1>
+        <p class="subtitle">Paint with sound - mix colors and instruments</p>
+        
+        <canvas id="canvas"></canvas>
+        
+        <div class="controls">
+            <div class="color-palette" id="colorPalette"></div>
+            
+            <div class="instrument-selector">
+                <select id="instrumentSelect">
+                    <option value="piano">🎹 Piano</option>
+                    <option value="synth">🎛️ Synth</option>
+                    <option value="pad" selected>🌊 Ambient Pad</option>
+                    <option value="bells">🔔 Bells</option>
+                    <option value="bass">🎸 Bass</option>
+                    <option value="drums">🥁 Drums</option>
+                </select>
+            </div>
+            
+            <div class="brush-control">
+                <label for="brushSize">Brush:</label>
+                <input type="range" id="brushSize" min="5" max="50" value="20">
+                <span id="brushValue">20</span>
+            </div>
+        </div>
+
+        <div class="controls button-group">
+            <button id="replayBtn" class="secondary">▶️ Replay Drawing</button>
+            <button id="loopBtn" class="secondary">🔁 Loop Music</button>
+            <button id="clearBtn" class="danger">Clear Canvas</button>
+        </div>
+        
+        <p class="info">Your artwork saves automatically ✨</p>
+    </div>
+
+    <script>
+        // Audio Context Setup
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new AudioContext();
+
+        // Canvas Setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const rect = container.getBoundingClientRect();
+            canvas.width = Math.min(800, rect.width - 60);
+            canvas.height = 500;
+            loadCanvas();
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Color palette with corresponding musical notes (frequencies)
+        const colorNotes = [
+            { color: '#FF6B6B', freq: 261.63, name: 'C' },  // Red - C
+            { color: '#4ECDC4', freq: 293.66, name: 'D' },  // Teal - D
+            { color: '#45B7D1', freq: 329.63, name: 'E' },  // Blue - E
+            { color: '#96CEB4', freq: 349.23, name: 'F' },  // Green - F
+            { color: '#FFEAA7', freq: 392.00, name: 'G' },  // Yellow - G
+            { color: '#DDA15E', freq: 440.00, name: 'A' },  // Orange - A
+            { color: '#BC6C25', freq: 493.88, name: 'B' },  // Brown - B
+            { color: '#9D84B7', freq: 523.25, name: 'C5' }, // Purple - C (higher)
+        ];
+
+        // Instrument configurations
+        const instruments = {
+            piano: { type: 'triangle', attack: 0.01, release: 0.5, gain: 0.3 },
+            synth: { type: 'sawtooth', attack: 0.1, release: 0.3, gain: 0.2 },
+            pad: { type: 'sine', attack: 0.2, release: 0.8, gain: 0.15 },
+            bells: { type: 'sine', attack: 0.01, release: 1.2, gain: 0.25 },
+            bass: { type: 'triangle', attack: 0.05, release: 0.4, gain: 0.35, octaveShift: -1 },
+            drums: { type: 'noise', attack: 0.01, release: 0.1, gain: 0.4 }
+        };
+
+        let currentColor = colorNotes[0].color;
+        let currentFreq = colorNotes[0].freq;
+        let currentInstrument = 'pad';
+        let brushSize = 20;
+        let isDrawing = false;
+        let activeOscillators = new Map();
+        let drawingData = []; // Store drawing strokes for replay
+        let isReplaying = false;
+        let isLooping = false;
+        let loopInterval = null;
+
+        // Create color palette
+        const palette = document.getElementById('colorPalette');
+        colorNotes.forEach((note, index) => {
+            const btn = document.createElement('div');
+            btn.className = 'color-btn';
+            btn.style.backgroundColor = note.color;
+            if (index === 0) btn.classList.add('active');
+            
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentColor = note.color;
+                currentFreq = note.freq;
+            });
+            
+            palette.appendChild(btn);
+        });
+
+        // Instrument selector
+        const instrumentSelect = document.getElementById('instrumentSelect');
+        instrumentSelect.addEventListener('change', (e) => {
+            currentInstrument = e.target.value;
+        });
+
+        // Brush size control
+        const brushSizeInput = document.getElementById('brushSize');
+        const brushValue = document.getElementById('brushValue');
+        
+        brushSizeInput.addEventListener('input', (e) => {
+            brushSize = parseInt(e.target.value);
+            brushValue.textContent = brushSize;
+        });
+
+        // Drawing functions
+        function startDrawing(e) {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            isDrawing = true;
+            
+            // Start a new stroke
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            
+            drawingData.push({
+                points: [],
+                color: currentColor,
+                instrument: currentInstrument,
+                freq: currentFreq,
+                size: brushSize
+            });
+            
+            draw(e);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            ctx.beginPath();
+            // Stop all active oscillators
+            activeOscillators.forEach((data, key) => {
+                const inst = instruments[data.instrument];
+                data.gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + inst.release);
+                setTimeout(() => {
+                    data.oscillator.stop();
+                    if (data.oscillator2) data.oscillator2.stop();
+                    activeOscillators.delete(key);
+                }, (inst.release * 1000) + 50);
+            });
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            const canvasX = x * (canvas.width / rect.width);
+            const canvasY = y * (canvas.height / rect.height);
+
+            // Store point
+            if (drawingData.length > 0) {
+                drawingData[drawingData.length - 1].points.push({ x: canvasX, y: canvasY });
+            }
+
+            // Draw
+            ctx.lineCap = 'round';
+            ctx.lineWidth = brushSize;
+            ctx.strokeStyle = currentColor;
+            ctx.lineTo(canvasX, canvasY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(canvasX, canvasY);
+
+            // Play sound
+            playSound(currentFreq, currentColor, currentInstrument);
+            
+            // Save canvas
+            saveCanvas();
+        }
+
+        function playSound(frequency, color, instrument) {
+            const inst = instruments[instrument];
+            const key = color + frequency + instrument;
+            
+            // If this sound is already playing, don't create another
+            if (activeOscillators.has(key)) {
+                return;
+            }
+
+            // Apply octave shift for bass
+            const finalFreq = inst.octaveShift ? frequency * Math.pow(2, inst.octaveShift) : frequency;
+
+            if (instrument === 'drums') {
+                playDrumSound();
+                return;
+            }
+
+            // Create oscillator
+            const oscillator = audioContext.createOscillator();
+            oscillator.type = inst.type;
+            oscillator.frequency.setValueAtTime(finalFreq, audioContext.currentTime);
+
+            let oscillator2 = null;
+            if (instrument === 'pad' || instrument === 'synth') {
+                // Add detuned oscillator for richness
+                oscillator2 = audioContext.createOscillator();
+                oscillator2.type = inst.type;
+                oscillator2.frequency.setValueAtTime(finalFreq * 1.01, audioContext.currentTime);
+            }
+
+            // Create gain node
+            const gainNode = audioContext.createGain();
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(inst.gain, audioContext.currentTime + inst.attack);
+
+            // Connect nodes
+            oscillator.connect(gainNode);
+            if (oscillator2) oscillator2.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.start();
+            if (oscillator2) oscillator2.start();
+
+            activeOscillators.set(key, { oscillator, oscillator2, gainNode, instrument });
+        }
+
+        function playDrumSound() {
+            const bufferSize = audioContext.sampleRate * 0.1;
+            const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+            const output = buffer.getChannelData(0);
+            
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+            
+            const noise = audioContext.createBufferSource();
+            noise.buffer = buffer;
+            
+            const noiseGain = audioContext.createGain();
+            noiseGain.gain.setValueAtTime(0.4, audioContext.currentTime);
+            noiseGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            
+            noise.connect(noiseGain);
+            noiseGain.connect(audioContext.destination);
+            noise.start();
+            noise.stop(audioContext.currentTime + 0.1);
+        }
+
+        // Replay Drawing Feature
+        const replayBtn = document.getElementById('replayBtn');
+        replayBtn.addEventListener('click', async () => {
+            if (isReplaying) return;
+            if (drawingData.length === 0) {
+                alert('Draw something first!');
+                return;
+            }
+
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+
+            isReplaying = true;
+            replayBtn.textContent = '⏸️ Playing...';
+            replayBtn.disabled = true;
+
+            // Clear and redraw with animation
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (const stroke of drawingData) {
+                ctx.strokeStyle = stroke.color;
+                ctx.lineWidth = stroke.size;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+
+                for (let i = 0; i < stroke.points.length; i++) {
+                    const point = stroke.points[i];
+                    
+                    if (i === 0) {
+                        ctx.moveTo(point.x, point.y);
+                    } else {
+                        ctx.lineTo(point.x, point.y);
+                    }
+                    ctx.stroke();
+
+                    // Play sound
+                    if (i % 3 === 0) { // Play every 3rd point to avoid too many sounds
+                        playSound(stroke.freq, stroke.color, stroke.instrument);
+                    }
+
+                    // Wait a bit between points
+                    await new Promise(resolve => setTimeout(resolve, 20));
+                }
+
+                ctx.beginPath();
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            isReplaying = false;
+            replayBtn.textContent = '▶️ Replay Drawing';
+            replayBtn.disabled = false;
+            saveCanvas();
+        });
+
+        // Loop Music Feature
+        const loopBtn = document.getElementById('loopBtn');
+        loopBtn.addEventListener('click', async () => {
+            if (drawingData.length === 0) {
+                alert('Draw something first!');
+                return;
+            }
+
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+
+            if (isLooping) {
+                // Stop looping
+                isLooping = false;
+                if (loopInterval) clearInterval(loopInterval);
+                loopBtn.textContent = '🔁 Loop Music';
+                loopBtn.classList.remove('playing');
+            } else {
+                // Start looping
+                isLooping = true;
+                loopBtn.textContent = '⏹️ Stop Loop';
+                loopBtn.classList.add('playing');
+                
+                playLoopMusic();
+            }
+        });
+
+        function playLoopMusic() {
+            // Analyze drawing to create a looping pattern
+            const pattern = [];
+            
+            // Sample points from the drawing across the canvas width
+            const sampleCount = 16;
+            for (let i = 0; i < sampleCount; i++) {
+                const xPosition = (canvas.width / sampleCount) * i;
+                
+                // Find strokes near this x position
+                const nearbyStrokes = [];
+                drawingData.forEach(stroke => {
+                    stroke.points.forEach(point => {
+                        if (Math.abs(point.x - xPosition) < 50) {
+                            nearbyStrokes.push({
+                                freq: stroke.freq,
+                                instrument: stroke.instrument,
+                                y: point.y
+                            });
+                        }
+                    });
+                });
+                
+                if (nearbyStrokes.length > 0) {
+                    pattern.push(nearbyStrokes[Math.floor(Math.random() * nearbyStrokes.length)]);
+                } else {
+                    pattern.push(null);
+                }
+            }
+
+            let currentStep = 0;
+            loopInterval = setInterval(() => {
+                if (!isLooping) {
+                    clearInterval(loopInterval);
+                    return;
+                }
+
+                const note = pattern[currentStep];
+                if (note) {
+                    playLoopNote(note.freq, note.instrument);
+                }
+
+                currentStep = (currentStep + 1) % pattern.length;
+            }, 250); // Play every 250ms (quarter note at 120 BPM)
+        }
+
+        function playLoopNote(frequency, instrument) {
+            const inst = instruments[instrument];
+            const finalFreq = inst.octaveShift ? frequency * Math.pow(2, inst.octaveShift) : frequency;
+
+            if (instrument === 'drums') {
+                playDrumSound();
+                return;
+            }
+
+            const oscillator = audioContext.createOscillator();
+            oscillator.type = inst.type;
+            oscillator.frequency.setValueAtTime(finalFreq, audioContext.currentTime);
+
+            const gainNode = audioContext.createGain();
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(inst.gain * 0.6, audioContext.currentTime + inst.attack);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.2);
+        }
+
+        // Mouse events
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // Touch events
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            startDrawing(e);
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            draw(e);
+        });
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            stopDrawing();
+        });
+
+        // Clear button
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            if (confirm('Clear your artwork? This cannot be undone.')) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawingData = [];
+                if (isLooping) {
+                    isLooping = false;
+                    if (loopInterval) clearInterval(loopInterval);
+                    loopBtn.textContent = '🔁 Loop Music';
+                    loopBtn.classList.remove('playing');
+                }
+                saveCanvas();
+            }
+        });
+
+        // Save and load canvas
+        function saveCanvas() {
+            const saveData = {
+                image: canvas.toDataURL(),
+                drawingData: drawingData
+            };
+            localStorage.setItem('ambientPaintCanvas', JSON.stringify(saveData));
+        }
+
+        function loadCanvas() {
+            const saved = localStorage.getItem('ambientPaintCanvas');
+            if (saved) {
+                try {
+                    const saveData = JSON.parse(saved);
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0);
+                    };
+                    img.src = saveData.image;
+                    
+                    if (saveData.drawingData) {
+                        drawingData = saveData.drawingData;
+                    }
+                } catch (e) {
+                    // Handle old format
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0);
+                    };
+                    img.src = saved;
+                }
+            }
+        }
+
+        // Initial load
+        loadCanvas();
+    </script>
+</body>
+</html>
